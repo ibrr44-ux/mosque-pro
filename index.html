@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>سادن المسجد | صيانة ذكية</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="lib/chart.umd.min.js"></script>
+  <script src="lib/qrcode.min.js"></script>
+  <script src="lib/html5-qrcode.min.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="glass-header">
+  <div class="header-title">
+    <h1 data-i18n="appTitle"><i class="fas fa-mosque"></i> سادن المسجد | صيانة ذكية</h1>
+    <p data-i18n="appSubtitle">إدارة شاملة • باركود • تتبع الصيانة</p>
+  </div>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <div style="position:relative;">
+      <button id="mosque-button" class="btn btn-outline" style="background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 20px; font-weight: 600; display:flex;align-items:center;gap:8px;" onclick="toggleMosqueDropdown()">
+        <span id="mosque-button-label" data-i18n="selectMosque">-- اختر مسجد --</span>
+        <i class="fas fa-caret-down" style="margin-left:6px;font-size:0.9rem;"></i>
+      </button>
+      <div id="mosque-dropdown" class="mosque-dropdown" style="display:none;">
+        <div id="mosque-dropdown-list"></div>
+        <div style="padding:8px;border-top:1px solid rgba(255,255,255,0.04);text-align:center;">
+          <button class="btn" id="mosque-add-inline" onclick="openMosqueModal()" style="padding:6px 10px;font-size:0.85rem;" data-i18n="addMosqueBtn"><i class="fas fa-plus"></i> إضافة مسجد جديد</button>
+        </div>
+      </div>
+    </div>
+    <button class="theme-toggle" id="langToggle" onclick="setLanguage(currentLang === 'ar' ? 'en' : 'ar')" style="font-size:0.8rem;"><i class="fas fa-language"></i> English</button>
+    <button class="theme-toggle" id="darkModeToggle"><i class="fas fa-moon"></i> <span>الوضع الليلي</span></button>
+  </div>
+</div>
+
+<!-- Mosque Selection Modal -->
+<div class="modal-overlay" id="mosque-modal" style="display: none;">
+  <div class="modal-glass">
+    <div class="flex-between" style="margin-bottom: 1.5rem;">
+      <h2 data-i18n="mosqueManagement"><i class="fas fa-mosque"></i> إدارة المساجد</h2>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;" data-i18n="mosqueManagementDesc">كل مسجد له ملف بيانات مستقل، يمكنك التبديل بينهم بحرية</p>
+      <button onclick="closeMosqueModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+    </div>
+    
+    <div style="border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1rem;">
+      <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;"><i class="fas fa-plus-circle"></i> <span data-i18n="addMosqueBtn">إضافة مسجد جديد</span></h3>
+      <div style="display: flex; gap: 0.8rem;">
+        <input type="text" id="new-mosque-name" data-i18n-placeholder="mosqueNamePlaceholder" placeholder="اسم المسجد الجديد" style="flex: 1; margin-bottom: 0;">
+        <button onclick="addNewMosque()" class="btn btn-primary" data-i18n="add"><i class="fas fa-check"></i> إضافة</button>
+      </div>
+    </div>
+    
+    <h3 style="font-size: 0.95rem; margin-bottom: 0.8rem;"><i class="fas fa-list"></i> <span data-i18n="registeredMosques">المساجد المسجلة</span></h3>
+    <div id="mosque-list"></div>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <button class="tab-btn active" data-tab="dashboard" data-i18n="tabDashboard"><i class="fas fa-chart-line"></i> لوحة القيادة</button>
+  <button class="tab-btn" data-tab="tasks" data-i18n="tabTasks"><i class="fas fa-tasks"></i> المهام</button>
+  <button class="tab-btn" data-tab="issues" data-i18n="tabIssues"><i class="fas fa-tools"></i> الأعطال</button>
+  <button class="tab-btn" data-tab="finances" data-i18n="tabFinances"><i class="fas fa-wallet"></i> المالية</button>
+  <button class="tab-btn" data-tab="inventory" data-i18n="tabInventory"><i class="fas fa-cogs"></i> المعدات</button>
+  <button class="tab-btn" data-tab="scanner" data-i18n="tabScanner"><i class="fas fa-qrcode"></i> الماسح</button>
+  <button class="tab-btn" data-tab="reports" data-i18n="tabReports"><i class="fas fa-chart-pie"></i> التقارير</button>
+  <button class="tab-btn" data-tab="settings" data-i18n="tabSettings"><i class="fas fa-shield-alt"></i> الإعدادات</button>
+</div>
+
+<main>
+  <!-- Dashboard -->
+  <section id="dashboard" class="active">
+    <div class="stat-grid">
+      <div class="stat-card"><i class="fas fa-calendar-check"></i><div class="num" id="dash-tasks">0</div><div data-i18n="dashTasks">مهام اليوم</div></div>
+      <div class="stat-card"><i class="fas fa-exclamation-triangle"></i><div class="num" id="dash-issues">0</div><div data-i18n="dashIssues">أعطال نشطة</div></div>
+      <div class="stat-card"><i class="fas fa-hand-holding-usd"></i><div class="num" id="dash-income">0</div><div data-i18n="dashIncome">إجمالي الايرادات</div></div>
+      <div class="stat-card"><i class="fas fa-chart-line"></i><div class="num" id="dash-balance">0</div><div data-i18n="dashBalance">الرصيد</div></div>
+    </div>
+    <div class="card-modern">
+      <div class="flex-between"><h3 data-i18n="recentActivity"><i class="fas fa-history"></i> آخر النشاطات</h3></div>
+      <div id="dash-activity"></div>
+    </div>
+    <div class="card-modern">
+      <h3 data-i18n="upcomingMaint"><i class="fas fa-bell"></i> صيانة وشيكة (7 أيام)</h3>
+      <div id="dash-upcoming"></div>
+    </div>
+  </section>
+
+  <!-- Tasks -->
+  <section id="tasks">
+    <div class="flex-between"><h2 data-i18n="tasksTitle"><i class="fas fa-list-check"></i> المهام اليومية</h2><button class="btn btn-primary" onclick="openModal('task')" data-i18n="newTask"><i class="fas fa-plus"></i> مهمة جديدة</button></div>
+    <div id="task-list" class="mt-3"></div>
+  </section>
+
+  <!-- Issues -->
+  <section id="issues">
+    <div class="flex-between"><h2 data-i18n="issuesTitle"><i class="fas fa-bug"></i> الأعطال والصيانة</h2><button class="btn btn-primary" onclick="openModal('issue')" data-i18n="newIssue"><i class="fas fa-plus-circle"></i> بلاغ عطل</button></div>
+    <div id="issue-list"></div>
+  </section>
+
+  <!-- Finances -->
+  <section id="finances">
+    <div class="stat-grid">
+      <div class="stat-card" style="border-right-color: #10b981;"><i class="fas fa-donate"></i><div class="num" id="fin-income-val">0</div><div data-i18n="incomeLabel">الإيرادات</div></div>
+      <div class="stat-card" style="border-right-color: #ef4444;"><i class="fas fa-receipt"></i><div class="num" id="fin-expense-val">0</div><div data-i18n="expenseLabel">المصروفات</div></div>
+    </div>
+    <div class="flex-between"><h3 data-i18n="financeTitle"><i class="fas fa-exchange-alt"></i> السجل المالي</h3><div><button class="btn btn-success" onclick="openModal('donation')" data-i18n="addIncome"><i class="fas fa-gift"></i> ايرادات</button><button class="btn btn-danger" onclick="openModal('expense')" data-i18n="addExpense"><i class="fas fa-cart"></i> مصروفات</button></div></div>
+    <div id="finance-list"></div>
+  </section>
+
+  <!-- Inventory -->
+  <section id="inventory">
+    <div class="flex-between"><h2 data-i18n="inventoryTitle"><i class="fas fa-microchip"></i> جرد المعدات</h2><button class="btn btn-primary" onclick="openModal('equipment')" data-i18n="newEquipment"><i class="fas fa-plus"></i> جهاز جديد</button></div>
+    <div style="margin-bottom: 1rem;"><input type="text" id="search-eq" placeholder="بحث بالاسم أو الباركود أو الموقع..." onkeyup="searchEquipment()" style="margin-bottom:0"></div>
+    <div id="equipment-list"></div>
+    <div id="archived-section" style="display:none;margin-top:2rem;">
+      <h3 style="color:var(--text-muted);font-size:1rem;margin-bottom:1rem;"><i class="fas fa-archive"></i> <span data-i18n="archivedEq">الأجهزة المؤرشفة</span></h3>
+      <div id="archived-equipment-list"></div>
+    </div>
+  </section>
+
+  <!-- Scanner -->
+  <section id="scanner">
+    <div class="card-modern">
+      <h2 data-i18n="scannerTitle"><i class="fas fa-qrcode"></i> ماسح الباركود</h2>
+      <p style="color:var(--text-muted);margin-bottom:1rem;" data-i18n="scannerDesc">امسح باركود الجهاز للانتقال مباشرة إلى بياناته وسجل صيانته</p>
+      <div id="scanner-options">
+        <div class="scanner-option-btn" onclick="startCameraScanner()">
+          <i class="fas fa-camera" style="font-size:2rem;"></i>
+          <div><strong data-i18n="startCamera">تشغيل الكاميرا</strong><br><small style="opacity:0.7;" data-i18n="startCameraSub">مسح مباشر بالكاميرا</small></div>
+        </div>
+        <label class="scanner-option-btn" style="display:flex;">
+          <i class="fas fa-image" style="font-size:2rem;"></i>
+          <div><strong data-i18n="uploadImage">رفع صورة</strong><br><small style="opacity:0.7;" data-i18n="uploadImageSub">تحليل باركود من صورة</small></div>
+          <input type="file" id="scanner-file-input" accept="image/*" style="display:none;" onchange="scanImageFile(this)">
+        </label>
+      </div>
+      <div id="scanner-status" style="margin-top:1rem;"></div>
+    </div>
+    <div id="camera-container" style="display:none;" class="card-modern">
+      <div class="flex-between"><h3 data-i18n="cameraTitle"><i class="fas fa-video"></i> الكاميرا</h3><button class="btn btn-danger" onclick="stopCameraScanner()" data-i18n="cameraStop"><i class="fas fa-stop"></i> إيقاف</button></div>
+      <div id="qr-reader" style="width:100%;max-width:500px;margin:0 auto;"></div>
+    </div>
+  </section>
+
+  <!-- Reports -->
+  <section id="reports">
+    <div class="flex-between" style="margin-bottom:0.5rem;">
+      <h2 data-i18n="reportsTitle"><i class="fas fa-chart-pie"></i> التقارير والتحليلات</h2>
+      <button class="btn btn-primary no-print" onclick="window.print()" data-i18n="printSummary"><i class="fas fa-file-pdf"></i> طباعة الملخص التنفيذي</button>
+    </div>
+
+    <div class="card-modern print-only" id="print-summary-stats">
+      <div style="text-align:center;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid #ddd;">
+        <h2 data-i18n="printTitle">ملخص تنفيذي - سادن المسجد</h2>
+        <p style="color:#666;"><span data-i18n="printGenerated">تاريخ التوليد:</span> <span id="print-gen-date"></span></p>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+        <div style="text-align:center;flex:1;"><strong data-i18n="printTotalReports">إجمالي البلاغات</strong><br><span id="print-issues-total" style="font-size:1.5rem;font-weight:bold;">0</span></div>
+        <div style="text-align:center;flex:1;"><strong data-i18n="printFixed">تم الإصلاح</strong><br><span id="print-issues-resolved" style="font-size:1.5rem;font-weight:bold;color:#10b981;">0</span></div>
+        <div style="text-align:center;flex:1;"><strong data-i18n="printDevices">عدد الأجهزة</strong><br><span id="print-equipment-count" style="font-size:1.5rem;font-weight:bold;">0</span></div>
+        <div style="text-align:center;flex:1;"><strong data-i18n="printTotalCost">إجمالي التكاليف</strong><br><span id="print-maint-cost" style="font-size:1.5rem;font-weight:bold;color:#ef4444;">0</span></div>
+      </div>
+    </div>
+
+    <div class="card-modern">
+      <h3 data-i18n="report1"><i class="fas fa-chart-simple"></i> 1. تحليل الميزانية (الإيرادات vs المصروفات)</h3>
+      <div style="max-height:260px;"><canvas id="financeChart" width="400" height="180"></canvas></div>
+    </div>
+
+    <div class="card-modern">
+      <h3 data-i18n="report2"><i class="fas fa-chart-pie"></i> 2. تحليل المصروفات حسب الفئة</h3>
+      <p style="font-size:0.75rem;color:var(--text-muted);" data-i18n="report2Sub">النسبة المئوية لكل فئة من إجمالي المصاريف</p>
+      <div class="report-grid">
+        <div class="report-chart-container"><canvas id="categoryChart" width="200" height="200"></canvas></div>
+        <div>
+          <table class="report-table">
+            <thead><tr><th data-i18n="category">الفئة</th><th data-i18n="amountCol">المبلغ</th><th data-i18n="percentage">النسبة</th></tr></thead>
+            <tbody id="cat-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-modern">
+      <h3 data-i18n="report3"><i class="fas fa-exclamation-triangle"></i> 3. الأجهزة عالية التكلفة</h3>
+      <p style="font-size:0.75rem;color:var(--text-muted);" data-i18n="report3Sub">الأجهزة التي تجاوزت تكلفة صيانتها 50% من قيمتها التقديرية</p>
+      <div style="overflow-x:auto;">
+        <table class="report-table">
+          <thead><tr><th data-i18n="deviceCol">الجهاز</th><th data-i18n="estValueCol">قيمته التقديرية</th><th data-i18n="maintCostCol">تكلفة الصيانة</th><th data-i18n="ratioCol">النسبة</th><th data-i18n="recommendation">التوصية</th></tr></thead>
+          <tbody id="eq-report-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-modern">
+      <h3 data-i18n="report4"><i class="fas fa-user-cog"></i> 4. تقرير كفاءة الفنيين</h3>
+      <p style="font-size:0.75rem;color:var(--text-muted);" data-i18n="report4Sub">عدد مرات الصيانة لكل فني / جهة صيانة وعدد الأعطال المتكررة</p>
+      <div style="overflow-x:auto;">
+        <table class="report-table">
+          <thead><tr><th data-i18n="technicianCol">الفني / الشركة</th><th data-i18n="visits">عدد الزيارات</th><th data-i18n="devicesCount">عدد الأجهزة</th><th data-i18n="maintCostCol">تكلفة الصيانة</th><th data-i18n="avgVisits">معدل الزيارات لكل جهاز</th></tr></thead>
+          <tbody id="tech-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-modern">
+      <h3 data-i18n="report5"><i class="fas fa-chart-line"></i> 5. التوزيع الشهري للأعطال</h3>
+      <p style="font-size:0.75rem;color:var(--text-muted);" data-i18n="report5Sub">تحليل موسمية الأعطال لجدولة الصيانة الوقائية</p>
+      <div class="report-chart-container"><canvas id="trendChart" width="400" height="200"></canvas></div>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section id="settings">
+    <div class="card-modern" id="fs-card">
+      <h3 data-i18n="settingsSecureFolder"><i class="fas fa-shield-alt"></i> إدارة المجلد الآمن</h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);" data-i18n="settingsFolderDesc">اختر مجلداً على جهازك لحفظ جميع البيانات بشكل دائم. حتى لو مسحت ذاكرة المتصفح، بياناتك محفوظة.</p>
+      <div id="fs-status"></div>
+      <div class="flex-between" style="margin-top: 0.8rem;">
+        <button class="btn btn-primary" id="fs-setup-btn" onclick="setupFileSystem()" data-i18n="selectFolder"><i class="fas fa-folder-open"></i> اختيار مجلد</button>
+        <button class="btn btn-success" id="mobile-backup-btn" style="display:none;" onclick="shareDataMobile()" data-i18n="mobileBackup"><i class="fas fa-share-alt"></i> مشاركة نسخة احتياطية</button>
+        <button class="btn btn-outline" id="fs-reconnect-btn" style="display:none;" onclick="reconnectFileSystem()" data-i18n="reconnect"><i class="fas fa-sync"></i> إعادة الربط</button>
+        <button class="btn btn-danger" id="fs-disconnect-btn" style="display:none;" onclick="disconnectFileSystem()" data-i18n="disconnect"><i class="fas fa-unlink"></i> فصل المجلد</button>
+      </div>
+    </div>
+    <div class="card-modern">
+      <h3 data-i18n="settingsBackup"><i class="fas fa-database"></i> النسخ الاحتياطي</h3>
+      <div class="flex-between" style="margin-top: 1rem;">
+        <button class="btn btn-primary" onclick="exportData()" data-i18n="export"><i class="fas fa-download"></i> تصدير</button>
+        <label class="btn btn-outline" data-i18n="import_"><i class="fas fa-upload"></i> استيراد<input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(this)"></label>
+        <button class="btn btn-danger" onclick="clearAllData()" data-i18n="clearAll"><i class="fas fa-trash-alt"></i> مسح الكل</button>
+      </div>
+    </div>
+    <div class="card-modern">
+      <h3 data-i18n="settingsInstall"><i class="fas fa-mobile-screen"></i> تثبيت التطبيق</h3>
+      <p style="color:var(--text-muted);" data-i18n="settingsInstallDesc">يمكنك تثبيت هذا النظام كتطبيق على سطح المكتب أو الجوال للعمل بدون إنترنت.</p>
+      <div style="display: flex; gap: 10px; margin-top: 1rem; flex-wrap: wrap; align-items: center;">
+        <button class="btn btn-primary" id="install-btn" style="display:none;" onclick="installPWA()" data-i18n="installApp"><i class="fas fa-download"></i> تثبيت التطبيق</button>
+        <a href="https://ibrr44-ux.github.io/mosque/" target="_blank" class="btn btn-outline" style="text-decoration: none;"><i class="fas fa-book-open"></i> <span data-i18n="installInstructions">تعليمات استخدام التطبيق</span></a>
+      </div>
+    </div>
+    <div class="card-modern"><h3 data-i18n="systemInfo"><i class="fas fa-info-circle"></i> معلومات النظام</h3><p data-i18n="systemInfoText">نسخة 3.5 &ndash; تخزين ملفات آمن &bull; باركود ذكي &bull; PWA</p></div>
+    <div class="card-modern" style="text-align:center;">
+      <h3 data-i18n="contactDev"><i class="fas fa-code-branch"></i> تواصل مع المطور</h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.8rem;" data-i18n="contactDesc">لتطوير النظام أو اقتراح ميزات جديدة</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+        <a href="https://wa.me/966500654792" target="_blank" class="btn btn-success" style="font-size:1rem;padding:0.8rem 1.5rem;"><i class="fab fa-whatsapp"></i> <span data-i18n="whatsapp">واتساب</span>: 966500654792</a>
+        <a href="https://t.me/ibr369" target="_blank" class="btn btn-primary" style="font-size:1rem;padding:0.8rem 1.5rem;background:#1e93dd;"><i class="fab fa-telegram"></i> <span data-i18n="telegram">تليقرام</span>: @ibr369</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Universal Modal -->
+<div class="modal-overlay" id="universal-modal"><div class="modal-glass" id="modal-content"></div></div>
+
+<!-- QR Print Modal -->
+<div class="modal-overlay" id="qr-modal"><div class="modal-glass modal-glass-wide" id="qr-modal-content"></div></div>
+
+<!-- Application Scripts -->
+<script src="js/globals.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/db.js"></script>
+<script src="js/qr.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
