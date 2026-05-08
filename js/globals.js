@@ -29,6 +29,12 @@ function escapeHtml(str) {
   });
 }
 
+function sameId(a, b) {
+  if (a === b) return true;
+  if (a === undefined || a === null || b === undefined || b === null) return false;
+  return String(a).trim() === String(b).trim();
+}
+
 function formatCurrency(val) {
   var locale = currentLang === 'ar' ? 'ar-SA' : 'en-US';
   var symbol = currentLang === 'ar' ? ' ر.س' : ' SAR';

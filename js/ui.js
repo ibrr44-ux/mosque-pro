@@ -7,7 +7,7 @@ function searchEquipment() {
     });
     var html = '';
     filtered.forEach(function(e) {
-      html += '<div class="list-item-glass" onclick="showEquipmentDetailById(\'' + e.id + '\')" style="cursor:pointer;">';
+      html += '<div class="list-item-glass" onclick="showEquipmentDetailById(' + JSON.stringify(String(e.id)) + ')" style="cursor:pointer;">';
       html += '<div><strong>' + escapeHtml(e.name) + '</strong> <span style="color:var(--text-muted);font-size:0.8rem">(' + escapeHtml(e.uniqueId || '') + ')</span><br><span style="font-size:0.8rem">' + escapeHtml(e.location) + '</span></div>';
       html += '</div>';
     });
@@ -32,7 +32,7 @@ function showEquipmentDetail(eq) {
   html += '<div class="detail-header">';
   html += '<div id="eq-detail-qr" class="qr-small"></div>';
   html += '<div><h2 style="font-size:1.3rem;margin-bottom:4px;">' + escapeHtml(eq.name) + (isArchived ? ' <span class="badge-modern" style="background:var(--warning);color:white">مؤرشف</span>' : '') + '</h2><div style="font-family:monospace;background:var(--primary-glow);padding:4px 8px;border-radius:4px;display:inline-block;color:var(--primary);font-weight:bold;letter-spacing:1px;">' + escapeHtml(eq.uniqueId) + '</div></div>';
-  html += '<div style="margin-left:auto;text-align:center;"><button onclick="openQRPrint(\'' + eq.id + '\')" class="btn btn-outline"><i class="fas fa-qrcode"></i> ' + t('qrPrint') + '</button></div>';
+  html += '<div style="margin-left:auto;text-align:center;"><button onclick="openQRPrint(' + JSON.stringify(String(eq.id)) + ')" class="btn btn-outline"><i class="fas fa-qrcode"></i> ' + t('qrPrint') + '</button></div>';
   html += '</div>';
 
   html += '<div class="detail-info-grid">';
@@ -49,7 +49,7 @@ function showEquipmentDetail(eq) {
   html += '<div class="efficiency-meter ' + effClass + '"><i class="fas ' + effIcon + ' fa-2x" style="opacity:0.8"></i><div><strong style="display:block;font-size:0.85rem">' + t('maintRatio') + '</strong><span style="font-size:0.75rem">' + effText + '</span></div></div>';
 
   html += '<div class="flex-between" style="margin-top:1.5rem;margin-bottom:1rem"><h4><i class="fas fa-history"></i> ' + t('maintHistory') + '</h4>';
-  if (!isArchived) html += '<button class="btn btn-outline" onclick="addMaintenanceRecord(' + eq.id + ')"><i class="fas fa-plus"></i> ' + t('addMaintRecord') + '</button>';
+  if (!isArchived) html += '<button class="btn btn-outline" onclick="addMaintenanceRecord(' + JSON.stringify(String(eq.id)) + ')"><i class="fas fa-plus"></i> ' + t('addMaintRecord') + '</button>';
   html += '</div>';
 
   if (history.length === 0) {
@@ -57,8 +57,9 @@ function showEquipmentDetail(eq) {
   } else {
     html += '<div class="timeline">';
     history.sort(function(a, b) { return new Date(b.date) - new Date(a.date); }).forEach(function(r) {
-      var recordIdParam = r.id ? "'" + r.id + "'" : "'legacy_" + r.date + "_" + escapeHtml(r.description) + "'";
-      html += '<div class="timeline-item" onclick="editMaintenanceRecord(' + eq.id + ', ' + recordIdParam + ')" style="cursor:pointer">';
+      var legacyId = 'legacy|' + (r.date || '') + '|' + encodeURIComponent(r.description || '');
+      var recordIdParam = r.id ? JSON.stringify(r.id) : JSON.stringify(legacyId);
+      html += '<div class="timeline-item" onclick="editMaintenanceRecord(' + JSON.stringify(String(eq.id)) + ', ' + recordIdParam + ')" style="cursor:pointer">';
       html += '<span class="date">' + formatDate(r.date) + (r.technician ? ' • <i class="fas fa-user-tools"></i> ' + escapeHtml(r.technician) : '') + ' • <i class="fas fa-info-circle"></i> ' + t(r.status === 'open' ? 'statusOpen' : r.status === 'in-progress' ? 'statusInProgress' : 'statusResolved') + '</span>';
       html += '<div class="flex-between"><span class="desc">' + escapeHtml(r.description) + '</span>';
       if (r.cost > 0) html += '<span class="cost">' + formatCurrency(r.cost) + '</span>';
@@ -111,11 +112,11 @@ var App = {
         var priorityColor = taskItem.priority === 'high' ? 'var(--danger)' : taskItem.priority === 'low' ? 'var(--info)' : 'var(--warning)';
         html += '<div class="list-item-glass" style="border-right-color: ' + priorityColor + '">';
         html += '<div style="display:flex;align-items:center;gap:12px;">';
-        html += '<input type="checkbox" ' + (taskItem.completed ? 'checked' : '') + ' onchange="toggleTaskComplete(' + taskItem.id + ', this.checked)" style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;margin:0">';
+        html += '<input type="checkbox" ' + (taskItem.completed ? 'checked' : '') + ' onchange="toggleTaskComplete(' + JSON.stringify(String(taskItem.id)) + ', this.checked)" style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;margin:0">';
         html += '<div style="' + (taskItem.completed ? 'text-decoration:line-through;opacity:0.6' : '') + '"><strong>' + escapeHtml(taskItem.title) + '</strong><br><span style="font-size:0.8rem;color:var(--text-muted)">' + (taskItem.period === 'morning' ? t('taskMorning') : taskItem.period === 'afternoon' ? t('taskAfternoon') : t('taskEvening')) + '</span></div>';
         html += '</div>';
-        html += '<div><button onclick="openModal(\'task\', ' + taskItem.id + ')" class="btn btn-outline"><i class="fas fa-edit"></i></button> ';
-        html += '<button onclick="deleteItem(\'tasks\', ' + taskItem.id + ')" class="btn btn-danger"><i class="fas fa-trash"></i></button></div>';
+        html += '<div><button onclick="openModal(\'task\', ' + JSON.stringify(String(taskItem.id)) + ')" class="btn btn-outline"><i class="fas fa-edit"></i></button> ';
+        html += '<button onclick="deleteItem(\'tasks\', ' + JSON.stringify(String(taskItem.id)) + ')" class="btn btn-danger"><i class="fas fa-trash"></i></button></div>';
         html += '</div>';
       });
     }
@@ -131,8 +132,8 @@ var App = {
         html += '<div class="list-item-glass" style="border-right-color: var(--danger)">';
         html += '<div><span class="badge-modern" style="background:#fef2f2;color:var(--danger);margin-bottom:8px;">' + t('issuePending') + '</span>';
         html += '<strong>' + escapeHtml(i.location) + (i.equipment ? ' - ' + escapeHtml(i.equipment) : '') + '</strong><br><span style="font-size:0.85rem">' + escapeHtml(i.desc) + '</span></div>';
-        html += '<div style="display:flex;gap:8px;"><button onclick="resolveIssue(' + i.id + ')" class="btn btn-success"><i class="fas fa-check"></i> ' + t('issueResolved') + '</button>';
-        html += '<button onclick="openModal(\'issue\', ' + i.id + ')" class="btn btn-outline"><i class="fas fa-edit"></i></button></div>';
+        html += '<div style="display:flex;gap:8px;"><button onclick="resolveIssue(' + JSON.stringify(String(i.id)) + ')" class="btn btn-success"><i class="fas fa-check"></i> ' + t('issueResolved') + '</button>';
+        html += '<button onclick="openModal(\'issue\', ' + JSON.stringify(String(i.id)) + ')" class="btn btn-outline"><i class="fas fa-edit"></i></button></div>';
         html += '</div>';
       });
     }
@@ -149,7 +150,7 @@ var App = {
         html += '<div class="list-item-glass" style="border-right-color: ' + (isInc ? 'var(--success)' : 'var(--danger)') + '">';
         html += '<div><strong>' + escapeHtml(f.desc || f.name) + '</strong><br><span style="font-size:0.8rem;color:var(--text-muted)">' + formatDate(f.date) + (f.category ? ' - ' + escapeHtml(f.category) : '') + (f.autoGenerated ? ' <i class="fas fa-robot" title="Auto Generated"></i>' : '') + '</span></div>';
         html += '<div style="display:flex;align-items:center;gap:12px;"><span style="font-weight:700;color:' + (isInc ? 'var(--success)' : 'var(--danger)') + '">' + (isInc ? '+' : '-') + formatCurrency(f.amount) + '</span>';
-        html += '<button onclick="deleteItem(\'finances\', ' + f.id + ')" class="btn btn-danger" style="padding:6px 10px"><i class="fas fa-trash"></i></button></div>';
+        html += '<button onclick="deleteItem(\'finances\', ' + JSON.stringify(String(f.id)) + ')" class="btn btn-danger" style="padding:6px 10px"><i class="fas fa-trash"></i></button></div>';
         html += '</div>';
       });
     }
@@ -168,11 +169,11 @@ var App = {
     } else {
       filtered.forEach(function(e) {
         var est = parseFloat(e.estimatedValue) || 0;
-        html += '<div class="list-item-glass" onclick="showEquipmentDetailById(\'' + e.id + '\')" style="cursor:pointer;border-right-color:var(--primary-light)">';
+        html += '<div class="list-item-glass" onclick="showEquipmentDetailById(' + JSON.stringify(String(e.id)) + ')" style="cursor:pointer;border-right-color:var(--primary-light)">';
         html += '<div><strong>' + escapeHtml(e.name) + '</strong> <span style="font-family:monospace;font-size:0.75rem;color:var(--primary);background:var(--primary-glow);padding:2px 6px;border-radius:4px;">' + escapeHtml(e.uniqueId || '') + '</span><br>';
         html += '<span style="font-size:0.8rem;color:var(--text-muted)"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(e.location) + ' | <i class="fas fa-wallet"></i> ' + formatCurrency(est) + '</span></div>';
-        html += '<div><button onclick="event.stopPropagation(); openModal(\'equipment\', ' + e.id + ')" class="btn btn-outline" style="padding:6px 10px;margin-left:4px"><i class="fas fa-edit"></i></button>';
-        html += '<button onclick="event.stopPropagation(); deleteItem(\'equipment\', ' + e.id + ')" class="btn btn-danger" style="padding:6px 10px"><i class="fas fa-archive"></i></button></div>';
+        html += '<div><button onclick="event.stopPropagation(); openModal(\'equipment\', ' + JSON.stringify(String(e.id)) + ')" class="btn btn-outline" style="padding:6px 10px;margin-left:4px"><i class="fas fa-edit"></i></button>';
+        html += '<button onclick="event.stopPropagation(); deleteItem(\'equipment\', ' + JSON.stringify(String(e.id)) + ')" class="btn btn-danger" style="padding:6px 10px"><i class="fas fa-archive"></i></button></div>';
         html += '</div>';
       });
     }
@@ -184,8 +185,8 @@ var App = {
         archHtml += '<div class="list-item-glass" style="border-right-color:var(--text-muted); opacity:0.7">';
         archHtml += '<div><strong>' + escapeHtml(e.name) + '</strong> <span style="font-family:monospace;font-size:0.75rem;">' + escapeHtml(e.uniqueId || '') + '</span><br>';
         archHtml += '<span style="font-size:0.8rem;"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(e.location) + '</span></div>';
-        archHtml += '<div><button onclick="deleteItem(\'equipment\', ' + e.id + ')" class="btn btn-outline" style="padding:6px 10px"><i class="fas fa-undo"></i> ' + t('reactivate') + '</button></div>';
-        html += '</div>';
+        archHtml += '<div><button onclick="deleteItem(\'equipment\', ' + JSON.stringify(String(e.id)) + ')" class="btn btn-outline" style="padding:6px 10px"><i class="fas fa-undo"></i> ' + t('reactivate') + '</button></div>';
+        archHtml += '</div>';
       });
       document.getElementById('archived-equipment-list').innerHTML = archHtml;
       document.getElementById('archived-section').style.display = 'block';
@@ -224,8 +225,8 @@ var App = {
     if (upcoming.length === 0) upcHtml = '<p style="color:var(--text-muted);text-align:center;font-size:0.85rem">' + t('noMaint') + '</p>';
     upcoming.forEach(function(e) {
       upcHtml += '<div style="font-size:0.85rem;padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">';
-      actHtml += '<span>' + escapeHtml(e.name) + ' (' + escapeHtml(e.location) + ')</span>';
-      actHtml += '<span style="color:var(--warning)">' + formatDate(e.next) + '</span></div>';
+      upcHtml += '<span>' + escapeHtml(e.name) + ' (' + escapeHtml(e.location) + ')</span>';
+      upcHtml += '<span style="color:var(--warning)">' + formatDate(e.next) + '</span></div>';
     });
     document.getElementById('dash-upcoming').innerHTML = upcHtml;
   },
@@ -402,7 +403,7 @@ function openModal(type, id) {
   if (isEdit) {
     var store = type === 'task' ? 'tasks' : type === 'issue' ? 'issues' : type === 'equipment' ? 'equipment' : 'finances';
     dbGetAll(store).then(function(items) {
-      var item = items.find(function(i) { return i.id === id; });
+      var item = items.find(function(i) { return sameId(i.id, id); });
       if (!item) return;
       if (type === 'task') {
         document.getElementById('task-title').value = item.title;
@@ -450,7 +451,7 @@ function saveModal() {
     data = { title: document.getElementById('task-title').value, priority: document.getElementById('task-priority').value, period: document.getElementById('task-period').value, notes: document.getElementById('task-notes').value, date: new Date().toISOString().slice(0, 10), completed: false };
     if (currentEdit.id) {
       promise = dbGetAll('tasks').then(function(tasks) {
-        var old = tasks.find(function(t) { return t.id === currentEdit.id; });
+        var old = tasks.find(function(t) { return sameId(t.id, currentEdit.id); });
         if (old) { data = Object.assign({}, old, data); }
         return dbUpdate('tasks', data);
       });
@@ -462,7 +463,7 @@ function saveModal() {
     data = { location: document.getElementById('issue-loc').value, equipmentId: eqSelect.value ? parseInt(eqSelect.value) : null, equipment: eqSelect.options[eqSelect.selectedIndex].text.replace('-- اختر الجهاز --', '').replace('-- Select Equipment --', ''), desc: document.getElementById('issue-desc').value, date: new Date().toISOString(), status: 'open' };
     if (currentEdit.id) {
       promise = dbGetAll('issues').then(function(issues) {
-        var old = issues.find(function(i) { return i.id === currentEdit.id; });
+        var old = issues.find(function(i) { return sameId(i.id, currentEdit.id); });
         if (old) { data = Object.assign({}, old, data); }
         if (!data.status) data.status = 'open';
         return dbUpdate('issues', data);
@@ -474,7 +475,7 @@ function saveModal() {
     data = { type: 'donation', name: document.getElementById('donor-name').value, amount: parseFloat(document.getElementById('amount').value), purpose: document.getElementById('purpose').value, date: new Date().toISOString() };
     if (currentEdit.id) {
       promise = dbGetAll('finances').then(function(fins) {
-        var old = fins.find(function(f) { return f.id === currentEdit.id; });
+        var old = fins.find(function(f) { return sameId(f.id, currentEdit.id); });
         if (old) { data = Object.assign({}, old, data); }
         return dbUpdate('finances', data);
       });
@@ -485,7 +486,7 @@ function saveModal() {
     data = { type: 'expense', desc: document.getElementById('expense-desc').value, amount: parseFloat(document.getElementById('expense-amount').value), category: document.getElementById('expense-cat').value, date: new Date().toISOString() };
     if (currentEdit.id) {
       promise = dbGetAll('finances').then(function(fins) {
-        var old = fins.find(function(f) { return f.id === currentEdit.id; });
+        var old = fins.find(function(f) { return sameId(f.id, currentEdit.id); });
         if (old) { data = Object.assign({}, old, data); }
         return dbUpdate('finances', data);
       });
@@ -497,7 +498,7 @@ function saveModal() {
     data = { name: nameVal, location: document.getElementById('equip-location').value, estimatedValue: parseFloat(document.getElementById('equip-value').value) || 0, next: document.getElementById('equip-next').value, notes: document.getElementById('equip-notes').value, maintenanceHistory: [] };
     if (currentEdit.id) {
       promise = dbGetAll('equipment').then(function(eqs) {
-        var old = eqs.find(function(e) { return e.id === currentEdit.id; });
+        var old = eqs.find(function(e) { return sameId(e.id, currentEdit.id); });
         if (old) { data = Object.assign({}, old, data); }
         if (!data.maintenanceHistory) data.maintenanceHistory = [];
         delete data.status;

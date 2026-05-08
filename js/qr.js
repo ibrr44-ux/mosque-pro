@@ -2,6 +2,7 @@
 function generateQRCode(containerId, text, size) {
   size = size || 120;
   var container = document.getElementById(containerId);
+  if (!container) return;
   container.innerHTML = '';
   try {
     new QRCode(container, { text: text, width: size, height: size, colorDark: '#0f766e', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
@@ -12,7 +13,11 @@ function generateQRCode(containerId, text, size) {
 
 function openQRPrint(equipId) {
   dbGetAll('equipment').then(function(list) {
-    var eq = list.find(function(x) { return x.id === equipId; });
+    var rawId = equipId;
+    var rawIdStr = String(rawId).trim();
+    var eq = list.find(function(x) {
+      return sameId(x.id, rawIdStr) || sameId(x.uniqueId, rawIdStr);
+    });
     if (!eq || !eq.uniqueId) { alert(t('alertDeviceNotFound')); return; }
     var html = '<div class="flex-between"><h3><i class="fas fa-qrcode"></i> ' + t('qrBarcode') + '</h3><button onclick="closeQRModal()" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button></div>';
     html += '<div id="qr-print-area">';
@@ -79,18 +84,42 @@ function onScanFailure(error) {
 
 function startCameraScanner() {
   var statusEl = document.getElementById('scanner-status');
+  var optionsEl = document.getElementById('scanner-options');
+  var cameraContainer = document.getElementById('camera-container');
+  var readerEl = document.getElementById('qr-reader');
+
   if (!html5QrCode) {
     html5QrCode = new Html5Qrcode('qr-reader');
   }
+
+  if (optionsEl) optionsEl.style.display = 'none';
+  if (cameraContainer) cameraContainer.style.display = 'block';
+  if (readerEl) readerEl.innerHTML = '';
+
   statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + t('cameraStarting');
-  html5QrCode.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, onScanFailure)
+
+  // Show the preview container before starting the scanner so mobile browsers
+  // can calculate the video size correctly.
+  html5QrCode.start(
+    { facingMode: { ideal: 'environment' } },
+    {
+      fps: 10,
+      aspectRatio: 1.3333333,
+      qrbox: function(viewfinderWidth, viewfinderHeight) {
+        var size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.72);
+        return { width: size, height: size };
+      }
+    },
+    onScanSuccess,
+    onScanFailure
+  )
     .then(function() {
-      document.getElementById('scanner-options').style.display = 'none';
-      document.getElementById('camera-container').style.display = 'block';
       statusEl.innerHTML = '<span style="color:var(--success)"><i class="fas fa-camera"></i> ' + t('cameraOn') + '</span>';
     })
     .catch(function(err) {
       console.error(err);
+      if (optionsEl) optionsEl.style.display = 'flex';
+      if (cameraContainer) cameraContainer.style.display = 'none';
       statusEl.innerHTML = '<span style="color:var(--danger)"><i class="fas fa-exclamation-circle"></i> ' + t('cameraFail') + ': ' + err + '</span>';
     });
 }
@@ -107,8 +136,9 @@ function stopCameraScanner() {
 }
 
 function scanImageFile(e) {
-  if (e.target.files.length == 0) { return; }
-  var file = e.target.files[0];
+  var input = e && e.target ? e.target : e;
+  if (!input || !input.files || input.files.length === 0) { return; }
+  var file = input.files[0];
   var statusEl = document.getElementById('scanner-status');
   statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + t('scanImage');
   if (!html5QrCode) {
@@ -123,5 +153,5 @@ function scanImageFile(e) {
       statusEl.innerHTML = '<span style="color:var(--danger)"><i class="fas fa-times-circle"></i> ' + t('scanNoBarcode') + '</span>';
       console.error('File scan error:', err);
     });
-  e.target.value = '';
+  input.value = '';
 }

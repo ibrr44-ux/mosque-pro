@@ -61,7 +61,7 @@ function addMosque(mosqueName) {
 }
 
 function selectMosque(mosqueId) {
-  var mosque = mosqueConfig.mosques.find(function(m) { return m.id === mosqueId; });
+  var mosque = mosqueConfig.mosques.find(function(m) { return sameId(m.id, mosqueId); });
   if (!mosque) { alert(t('alertMosqueNotFound')); return; }
   
   var switchPromise = currentMosque ? saveAllData() : Promise.resolve();
@@ -166,8 +166,8 @@ function addNewMosque() {
   });
 }
 
-function deleteMosque(mosqueId) {
-  if (!confirm(t('confirmDeleteMosque'))) return;
+function deleteMosque(mosqueId, alreadyConfirmed) {
+  if (!alreadyConfirmed && !confirm(t('confirmDeleteMosque'))) return;
   mosqueConfig.mosques = mosqueConfig.mosques.filter(function(m) { return m.id !== mosqueId; });
   dbMetaSet('mosqueData_' + mosqueId, null);
   
@@ -243,7 +243,7 @@ function renderMosqueDropdown() {
       ev.stopPropagation();
       var id = this.dataset.id;
       if (confirm(t('confirmDeleteMosqueFiles'))) {
-        deleteMosque(id);
+        deleteMosque(id, true);
         renderMosqueDropdown();
       }
     });
@@ -703,9 +703,9 @@ function addMaintenanceRecord(equipId, existingRecordId) {
 
   if (isEdit) {
     dbGetAll('equipment').then(function(list) {
-      var eq = list.find(function(x) { return x.id === equipId; });
+      var eq = list.find(function(x) { return sameId(x.id, equipId); });
       if (eq && eq.maintenanceHistory) {
-        var record = eq.maintenanceHistory.find(function(r) { return r.id === existingRecordId; });
+        var record = eq.maintenanceHistory.find(function(r) { return sameId(r.id, existingRecordId); });
         if (record) {
           document.getElementById('maint-date').value = record.date || '';
           document.getElementById('maint-desc').value = record.description || '';
@@ -726,13 +726,13 @@ function addMaintenanceRecord(equipId, existingRecordId) {
     var maintStatus = document.getElementById('maint-status').value;
     var eqName = '';
     dbGetAll('equipment').then(function(list) {
-      var eq = list.find(function(x) { return x.id === equipId; });
+      var eq = list.find(function(x) { return sameId(x.id, equipId); });
       if (!eq) { alert(t('alertDeviceNotFound')); return; }
       eqName = eq.name;
       eq.maintenanceHistory = eq.maintenanceHistory || [];
 
       if (isEdit) {
-        var index = eq.maintenanceHistory.findIndex(function(r) { return r.id === existingRecordId; });
+        var index = eq.maintenanceHistory.findIndex(function(r) { return sameId(r.id, existingRecordId); });
         if (index !== -1) {
           var oldRecord = eq.maintenanceHistory[index];
           var oldCost = oldRecord.cost || 0;
@@ -769,7 +769,7 @@ function addMaintenanceRecord(equipId, existingRecordId) {
       closeModal();
       return dbGetAll('equipment');
     }).then(function(list) {
-      var eq = list.find(function(x) { return x.id === equipId; });
+      var eq = list.find(function(x) { return sameId(x.id, equipId); });
       if (eq && typeof showEquipmentDetail !== 'undefined') showEquipmentDetail(eq);
     }).catch(function(err) {
       console.error('Error saving maintenance:', err);
@@ -780,20 +780,38 @@ function addMaintenanceRecord(equipId, existingRecordId) {
 
 function editMaintenanceRecord(equipId, recordId) {
   dbGetAll('equipment').then(function(list) {
-    var eq = list.find(function(x) { return x.id === equipId; });
+    var eq = list.find(function(x) { return sameId(x.id, equipId); });
     if (!eq || !eq.maintenanceHistory) { addMaintenanceRecord(equipId); return; }
-    if (recordId.indexOf('legacy_') === 0) {
-      var parts = recordId.replace('legacy_', '').split('_');
-      var legacyDate = parts[0];
-      var legacyDesc = parts.slice(1).join('_');
-      var record = eq.maintenanceHistory.find(function(r) { return !r.id && r.date === legacyDate && r.description === legacyDesc; });
-      if (record) {
-        var newId = 'maint_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-        record.id = newId;
-        dbUpdate('equipment', eq).then(function() { addMaintenanceRecord(equipId, newId); });
+    if (typeof recordId === 'string' && recordId.indexOf('legacy|') === 0) {
+      var partsNew = recordId.split('|');
+      var legacyDateNew = partsNew[1] || '';
+      var legacyDescNewEncoded = partsNew.slice(2).join('|') || '';
+      var legacyDescNew = '';
+      try { legacyDescNew = decodeURIComponent(legacyDescNewEncoded); } catch (e) { legacyDescNew = legacyDescNewEncoded; }
+
+      var recordNew = eq.maintenanceHistory.find(function(r) { return !r.id && r.date === legacyDateNew && r.description === legacyDescNew; });
+      if (recordNew) {
+        var newIdNew = 'maint_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+        recordNew.id = newIdNew;
+        dbUpdate('equipment', eq).then(function() { addMaintenanceRecord(equipId, newIdNew); });
         return;
       }
-    } else {
+    }
+
+    if (typeof recordId === 'string' && recordId.indexOf('legacy_') === 0) {
+      var partsOld = recordId.replace('legacy_', '').split('_');
+      var legacyDateOld = partsOld[0];
+      var legacyDescOld = partsOld.slice(1).join('_');
+      var recordOld = eq.maintenanceHistory.find(function(r) { return !r.id && r.date === legacyDateOld && r.description === legacyDescOld; });
+      if (recordOld) {
+        var newIdOld = 'maint_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+        recordOld.id = newIdOld;
+        dbUpdate('equipment', eq).then(function() { addMaintenanceRecord(equipId, newIdOld); });
+        return;
+      }
+    }
+
+    if (recordId) {
       addMaintenanceRecord(equipId, recordId);
       return;
     }
@@ -801,18 +819,41 @@ function editMaintenanceRecord(equipId, recordId) {
   });
 }
 
-function showEquipmentDetailById(id) {
-  dbGetAll('equipment').then(function(list) {
-    var eq = list.find(function(x) { return x.id === id; });
+function showEquipmentDetailById(idOrUniqueId) {
+  var raw = idOrUniqueId;
+  var str = (raw === undefined || raw === null) ? '' : String(raw).trim();
+
+  if (!str) { alert(t('alertDeviceNotFound')); return; }
+
+  var numericId = null;
+  if (typeof raw === 'number' && !isNaN(raw)) {
+    numericId = raw;
+  } else {
+    var parsed = parseInt(str, 10);
+    if (!isNaN(parsed) && String(parsed) === str) numericId = parsed;
+  }
+
+  if (numericId !== null) {
+    dbGetAll('equipment').then(function(list) {
+      var eq = list.find(function(x) { return sameId(x.id, numericId); });
+      if (eq && typeof showEquipmentDetail !== 'undefined') showEquipmentDetail(eq);
+      else alert(t('alertDeviceNotFound'));
+    });
+    return;
+  }
+
+  dbGetByIndex('equipment', 'uniqueId', str).then(function(eq) {
     if (eq && typeof showEquipmentDetail !== 'undefined') showEquipmentDetail(eq);
     else alert(t('alertDeviceNotFound'));
+  }).catch(function() {
+    alert(t('alertDeviceNotFound'));
   });
 }
 
 // ---------- CRUD Helpers ----------
 function toggleTaskComplete(id, completed) {
   dbGetAll('tasks').then(function(tasks) {
-    var task = tasks.find(function(t) { return t.id === id; });
+    var task = tasks.find(function(t) { return sameId(t.id, id); });
     if (!task) return;
     task.completed = completed;
     dbUpdate('tasks', task).then(function() { if (typeof App !== 'undefined') App.refresh(); });
@@ -821,18 +862,18 @@ function toggleTaskComplete(id, completed) {
 
 function resolveIssue(id) {
   dbGetAll('issues').then(function(issues) {
-    var issue = issues.find(function(i) { return i.id === id; });
+    var issue = issues.find(function(i) { return sameId(i.id, id); });
     if (!issue) return;
     issue.status = 'resolved';
     issue.resolvedAt = new Date().toISOString();
     return dbUpdate('issues', issue).then(function() {
       if (issue.equipmentId) {
         return dbGetAll('equipment').then(function(list) {
-          var eq = list.find(function(e) { return e.id === issue.equipmentId; });
+          var eq = list.find(function(e) { return sameId(e.id, issue.equipmentId); });
           if (eq) {
             eq.maintenanceHistory = eq.maintenanceHistory || [];
             var existingRecord = eq.maintenanceHistory.find(function(h) {
-              return h.issueId === id || (h.date === issue.resolvedAt.slice(0,10) && h.description === issue.desc);
+              return sameId(h.issueId, id) || (h.date === issue.resolvedAt.slice(0,10) && h.description === issue.desc);
             });
             if (!existingRecord) {
               eq.maintenanceHistory.push({
@@ -855,7 +896,7 @@ function resolveIssue(id) {
 function deleteItem(store, id) {
   if (store === 'equipment') {
     dbGetAll('equipment').then(function(list) {
-      var eq = list.find(function(e) { return e.id === id; });
+      var eq = list.find(function(e) { return sameId(e.id, id); });
       if (!eq) return;
       if (eq.status === 'archived') {
         if (confirm(t('confirmReactivateEquip') + ' "' + eq.name + '"?')) {
