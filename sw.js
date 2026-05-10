@@ -1,7 +1,6 @@
-const CACHE = 'mosque-cache-v7';
+const CACHE = 'mosque-cache-v9';
 const ASSETS = [
   'index.html',
-  'install.html',
   'manifest.json',
   'icon-192.png',
   'icon-512.png',
@@ -48,6 +47,25 @@ self.addEventListener('fetch', function(e) {
   if (e.request.url.includes('chrome-extension')) return;
   if (e.request.url.includes('extension')) return;
 
+  // Network-first for HTML navigation (ensures fresh content after deploy)
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).then(function(response) {
+        if (response && response.status === 200) {
+          var clone = response.clone();
+          caches.open(CACHE).then(function(cache) { cache.put(e.request, clone); });
+        }
+        return response;
+      }).catch(function() {
+        return caches.match(e.request).then(function(cached) {
+          return cached || caches.match('index.html');
+        });
+      })
+    );
+    return;
+  }
+
+  // Cache-first for static assets
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;

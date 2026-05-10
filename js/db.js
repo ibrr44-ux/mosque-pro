@@ -370,18 +370,24 @@ function dbGetByIndex(store, indexName, value) {
 function dbAdd(store, data) {
   return fileSyncAfter(new Promise(function(res, rej) {
     var tx = db.transaction(store, 'readwrite');
+    var result;
     var req = tx.objectStore(store).add(data);
-    req.onsuccess = function() { res(req.result); };
+    req.onsuccess = function() { result = req.result; };
     req.onerror = function(e) { rej(e); };
+    tx.oncomplete = function() { res(result); };
+    tx.onerror = function(e) { rej(e); };
   }));
 }
 
 function dbUpdate(store, data) {
   return fileSyncAfter(new Promise(function(res, rej) {
     var tx = db.transaction(store, 'readwrite');
+    var result;
     var req = tx.objectStore(store).put(data);
-    req.onsuccess = function() { res(req.result); };
+    req.onsuccess = function() { result = req.result; };
     req.onerror = function(e) { rej(e); };
+    tx.oncomplete = function() { res(result); };
+    tx.onerror = function(e) { rej(e); };
   }));
 }
 
@@ -622,8 +628,7 @@ function disconnectFileSystem() {
 // Wrap save operations to automatically trigger sync
 function fileSyncAfter(opPromise) {
   return opPromise.then(function(result) {
-    saveAllData();
-    return result;
+    return saveAllData().then(function() { return result; });
   });
 }
 
