@@ -89,7 +89,13 @@ function startCameraScanner() {
   var readerEl = document.getElementById('qr-reader');
 
   if (!html5QrCode) {
-    html5QrCode = new Html5Qrcode('qr-reader');
+    try {
+      html5QrCode = new Html5Qrcode('qr-reader');
+    } catch (err) {
+      console.error('Failed to initialize Html5Qrcode:', err);
+      statusEl.innerHTML = '<span style="color:var(--danger)"><i class="fas fa-exclamation-circle"></i> ' + t('cameraInitFail') + '</span>';
+      return;
+    }
   }
 
   if (optionsEl) optionsEl.style.display = 'none';
@@ -98,8 +104,6 @@ function startCameraScanner() {
 
   statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + t('cameraStarting');
 
-  // Show the preview container before starting the scanner so mobile browsers
-  // can calculate the video size correctly.
   html5QrCode.start(
     { facingMode: { ideal: 'environment' } },
     {
@@ -117,10 +121,10 @@ function startCameraScanner() {
       statusEl.innerHTML = '<span style="color:var(--success)"><i class="fas fa-camera"></i> ' + t('cameraOn') + '</span>';
     })
     .catch(function(err) {
-      console.error(err);
+      console.error('Failed to start camera scanner:', err);
+      statusEl.innerHTML = '<span style="color:var(--danger)"><i class="fas fa-exclamation-circle"></i> ' + t('cameraFail') + ': ' + err + '</span>';
       if (optionsEl) optionsEl.style.display = 'flex';
       if (cameraContainer) cameraContainer.style.display = 'none';
-      statusEl.innerHTML = '<span style="color:var(--danger)"><i class="fas fa-exclamation-circle"></i> ' + t('cameraFail') + ': ' + err + '</span>';
     });
 }
 
